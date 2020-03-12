@@ -67,7 +67,7 @@ DRIVER_VERSION = "0.0.3"
 # this is effectively a fallback url if you have nothing in weewx.conf
 # but it is necessary if you want to run --test-driver before trying
 # this as a driver
-TEST_URL="http://192.168.1.18:80/v1/current_conditions2"
+TEST_URL="http://192.168.1.18:80/v1/current_conditions"
 
 def logmsg(dst, msg):
     syslog.syslog(dst, 'vincetest: %s' % msg)
