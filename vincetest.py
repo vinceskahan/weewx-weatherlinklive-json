@@ -22,6 +22,7 @@ Any hacks/errors/omissions/crimes-against-python are all mine.
 
 4. to test the driver standalone
 
+    # do this at least once to catch python modules you need to install
     PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/vincetest.py --test-driver
 
 5. run the driver in the foreground
@@ -41,6 +42,7 @@ Any hacks/errors/omissions/crimes-against-python are all mine.
     
 '''
 
+
 import json
 import requests
 import sys
@@ -52,7 +54,20 @@ import weewx.engine
 import weewx.units
 
 DRIVER_NAME = "vincetest"
-DRIVER_VERSION = "0.0.2"
+DRIVER_VERSION = "0.0.3"
+
+#----- test use only -------
+#
+# this is the test URL that is used for --test-driver
+# (it must return the expected JSON, see /var/log/messages for errors)
+#
+# this is 'not' used when you are running the real driver,
+# which uses the url setting in [vincetest] in weewx.conf
+#
+# this is effectively a fallback url if you have nothing in weewx.conf
+# but it is necessary if you want to run --test-driver before trying
+# this as a driver
+TEST_URL="http://192.168.1.18:80/v1/current_conditions2"
 
 def logmsg(dst, msg):
     syslog.syslog(dst, 'vincetest: %s' % msg)
@@ -81,7 +96,7 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
         self.poll_interval = float(stn_dict.get('poll_interval', 2))
         loginf("polling interval is %s" % self.poll_interval)
-        self.url = stn_dict.get('url', 'http://192.168.1.18:80/v1/conditions')
+        self.url = stn_dict.get('url', TEST_URL)
 
     # delete me
     @property
@@ -106,7 +121,7 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
                     data = r.json()
                     # print('\n') ; print(data); print('\n')    # vdsdebug
                 except Exception as e:
-                    loginf("failure to get data - try %s - (%s)" % (ntries, e))
+                    loginf("failure to get data %s - try %s - (%s)" % (self.url,ntries, e))
                     if self.poll_interval:
                         time.sleep(self.poll_interval)
                     return
@@ -179,7 +194,7 @@ class Sensor():
         self.timeout = timeout
 
 # To test this driver, do the following:
-#   PYTHONPATH=/home/weewx/bin python /home/weewx/bin/user/vincetest.py
+#   PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/vincetest.py
 if __name__ == "__main__":
     usage = """%prog [options] [--help]"""
 
