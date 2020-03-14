@@ -228,7 +228,7 @@ if __name__ == "__main__":
             import weeutil.logger
             log = logging.getLogger(__name__)
             weeutil.logger.setup('vincetest', {} )
-        except:
+        except ImportError:
             import syslog
             syslog.openlog('vincetest', syslog.LOG_PID | syslog.LOG_CONS)
 
