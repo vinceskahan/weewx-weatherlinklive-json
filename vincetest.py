@@ -42,20 +42,7 @@ Any hacks/errors/omissions/crimes-against-python are all mine.
     
 '''
 
-
-import json
-import requests
-import sys
-import syslog
-import time
-
-import weewx.drivers
-import weewx.engine
-import weewx.units
-
-DRIVER_NAME = "vincetest"
-DRIVER_VERSION = "0.0.3"
-
+#---------------------------
 #----- test use only -------
 #
 # this is the test URL that is used for --test-driver
@@ -67,19 +54,56 @@ DRIVER_VERSION = "0.0.3"
 # this is effectively a fallback url if you have nothing in weewx.conf
 # but it is necessary if you want to run --test-driver before trying
 # this as a driver
+#
 TEST_URL="http://192.168.1.18:80/v1/current_conditions"
+#
+#----- test use only -------
+#---------------------------
 
-def logmsg(dst, msg):
-    syslog.syslog(dst, 'vincetest: %s' % msg)
 
-def logdbg(msg):
-    logmsg(syslog.LOG_DEBUG, msg)
+import json
+import requests
+import sys
+import time
 
-def loginf(msg):
-    logmsg(syslog.LOG_INFO, msg)
+import weewx.drivers
+import weewx.engine
+import weewx.units
 
-def logerr(msg):
-    logmsg(syslog.LOG_ERR, msg)
+DRIVER_NAME = "vincetest"
+DRIVER_VERSION = "0.0.4"
+
+# new-style logging in weewx v4 - ref: https://github.com/weewx/weewx/wiki/WeeWX-v4-and-logging
+try:
+    # Test for new-style weewx logging by trying to import weeutil.logger
+    import weeutil.logger
+    import logging
+    log = logging.getLogger(__name__)
+
+    def logdbg(msg):
+        log.debug(msg)
+
+    def loginf(msg):
+        log.info(msg)
+
+    def logerr(msg):
+        log.error(msg)
+
+except ImportError:
+    # Old-style weewx logging
+    import syslog
+
+    def logmsg(level, msg):
+        syslog.syslog(level, 'vincetest: %s:' % msg)
+
+    def logdbg(msg):
+        logmsg(syslog.LOG_DEBUG, msg)
+
+    def loginf(msg):
+        logmsg(syslog.LOG_INFO, msg)
+
+    def logerr(msg):
+        logmsg(syslog.LOG_ERR, msg)
 
 # do we need this ?
 def loader(config_dict, engine):
@@ -199,8 +223,16 @@ if __name__ == "__main__":
     usage = """%prog [options] [--help]"""
 
     def main():
+        try:
+            import logging
+            import weeutil.logger
+            log = logging.getLogger(__name__)
+            weeutil.logger.setup('vincetest', {} )
+        except:
+            import syslog
+            syslog.openlog('vincetest', syslog.LOG_PID | syslog.LOG_CONS)
+
         import optparse
-        syslog.openlog('wee_vincetest', syslog.LOG_PID | syslog.LOG_CONS)
         parser = optparse.OptionParser(usage=usage)
         parser.add_option('--test-driver', dest='td', action='store_true',
                           help='test the driver')
