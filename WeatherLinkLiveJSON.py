@@ -1,20 +1,30 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''
 
-This is a test-use-only driver derived from mwall's maxbotix example (thanks Matthew!)
+Driver for Davis WeatherLinkLive via periodic queries of current conditions through the web api
+
+This driver is derived from mwall's maxbotix example (thanks Matthew!)
 Any hacks/errors/omissions/crimes-against-python are all mine.
 
-1.  install this driver in bin/user
-2.  define this as the station_type
+Note - these instructions assume you are doing a setup.py installation of weewx,
+       so the paths for manually testing things will vary if you use a packaged weewx.
+
+Installation instructions
+-------------------------
+1.  install this driver in bin/user as WeatherLinkLiveJSON.py
+            or
+    install this driver with the extension installer (preferred)
+
+2.  define this as the station_type in weewx.conf
 
     [Station]
-        station_type = vincetest
+        station_type = WeatherLinkLiveJSON
 
-3. add a stanza for this station type
+3. add a stanza for this station type in weewx.conf
 
-   [vincetest]
-      driver = user.vincetest
+   [WeatherLinkLiveJSON]
+      driver = user.WeatherLinkLiveJSON
       max_tries = 10
       retry_wait = 5
       poll_interval = 20
@@ -23,7 +33,7 @@ Any hacks/errors/omissions/crimes-against-python are all mine.
 4. to test the driver standalone
 
     # do this at least once to catch python modules you need to install
-    PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/vincetest.py --test-driver
+    PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/WeatherLinkLiveJSON.py --test-driver
 
 5. run the driver in the foreground
 
@@ -42,24 +52,24 @@ Any hacks/errors/omissions/crimes-against-python are all mine.
     
 '''
 
-#---------------------------
-#----- test use only -------
+#-------------- start editing here -------------------------------------
+#-------------- start editing here -------------------------------------
+#-------------- start editing here -------------------------------------
 #
-# this is the test URL that is used for --test-driver
+# OPTIONAL - edit the url to hit here for testing with --test-driver
 # (it must return the expected JSON, see /var/log/messages for errors)
 #
-# this is 'not' used when you are running the real driver,
-# which uses the url setting in [vincetest] in weewx.conf
-#
-# this is effectively a fallback url if you have nothing in weewx.conf
-# but it is necessary if you want to run --test-driver before trying
-# this as a driver
-#
-TEST_URL="http://192.168.1.18:80/v1/current_conditions"
-#
-#----- test use only -------
-#---------------------------
 
+TEST_URL="http://192.168.1.18:80/v1/current_conditions"
+
+#-------------- stop editing here -------------------------------------
+#-------------- stop editing here -------------------------------------
+#-------------- stop editing here -------------------------------------
+
+# and now for the driver itself......
+
+DRIVER_NAME = "WeatherLinkLiveJSON"
+DRIVER_VERSION = "0.0.5"
 
 import json
 import requests
@@ -70,62 +80,55 @@ import weewx.drivers
 import weewx.engine
 import weewx.units
 
-DRIVER_NAME = "vincetest"
-DRIVER_VERSION = "0.0.4"
-
-# new-style logging in weewx v4 - ref: https://github.com/weewx/weewx/wiki/WeeWX-v4-and-logging
+# support both new and old formats for weewx logging
+# ref: https://github.com/weewx/weewx/wiki/WeeWX-v4-and-logging
 try:
-    # Test for new-style weewx logging by trying to import weeutil.logger
     import weeutil.logger
     import logging
     log = logging.getLogger(__name__)
-
     def logdbg(msg):
         log.debug(msg)
-
     def loginf(msg):
         log.info(msg)
-
     def logerr(msg):
         log.error(msg)
-
 except ImportError:
-    # Old-style weewx logging
     import syslog
-
     def logmsg(level, msg):
-        syslog.syslog(level, 'vincetest: %s:' % msg)
-
+        syslog.syslog(level, 'WeatherLinkLiveJSON: %s:' % msg)
     def logdbg(msg):
         logmsg(syslog.LOG_DEBUG, msg)
-
     def loginf(msg):
         logmsg(syslog.LOG_INFO, msg)
-
     def logerr(msg):
         logmsg(syslog.LOG_ERR, msg)
 
-# do we need this ?
 def loader(config_dict, engine):
-    return vincetestDriver(**config_dict['vincetest'])
+    return WeatherLinkLiveJSONDriver(**config_dict[DRIVER_NAME])
 
-class vincetestDriver(weewx.drivers.AbstractDevice):
+class WeatherLinkLiveJSONDriver(weewx.drivers.AbstractDevice):
 
-    # the quick poll_interval lets us run --test-driver and see info quicker
-    # in general this shouldn't be faster than 60 secs, defined in weewx.conf
+    # These settings contain default values you should set in weewx.conf
+    # The quick poll_interval default here lets us run --test-driver and see
+    # info quicker, but in general this shouldn't be faster than 60 secs
+    # in your weewx.conf settings
 
     def __init__(self, **stn_dict):
-        loginf("driver version is %s" % DRIVER_VERSION)
+        self.vendor = "Davis"
+        self.product = "WeatherLinkLive"
+        self.model = "WeatherLinkLiveJSON"
         self.max_tries = int(stn_dict.get('max_tries', 5))
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
         self.poll_interval = float(stn_dict.get('poll_interval', 2))
-        loginf("polling interval is %s" % self.poll_interval)
         self.url = stn_dict.get('url', TEST_URL)
+        loginf("driver is %s" % DRIVER_NAME)
+        loginf("driver version is %s" % DRIVER_VERSION)
+        loginf("polling interval is %s" % self.poll_interval)
 
-    # delete me
+    # the hardware does not define a model so use what is in the __init__ settings
     @property
     def hardware_name(self):
-        return "vincetest"
+        return self.model
 
     def genLoopPackets(self):
 
@@ -139,6 +142,9 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
                 # the return status from the webserver, but servers returning a default
                 # web page will return 200 when they should actually 404, meaning that if
                 # anything goes wrong here, syslog isn't going to tell you which failed here
+                #
+                # in that case, the user should manually curl the url defined in weewx.conf
+                # to investigate futher to see what's happening
 
                 try:
                     r = requests.get(url=self.url)
@@ -150,27 +156,34 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
                         time.sleep(self.poll_interval)
                     return
 
-                # if you got to here, you should have valid JSON to parse
+                # to do - return back to the loop unless data['data']['errors'] == 'none'
 
-                # to do - punt back to the loop unless data['data']['errors'] == 'none'
+                # if you got to here, you should have valid JSON to parse
 
                 #-----------------------------------------------------------------------------
                 # The WeatherLink Live returns JSON containing an array of sensors with their 
                 # individual unique content, so we need to loop through the sensors one by one
                 #
-                # see https://weatherlink.github.io/weatherlink-live-local-api/
+                # for details - see https://weatherlink.github.io/weatherlink-live-local-api/
                 #
-                # the mappings below are incomplete but should be enough
+                # the mappings to weewx data elements below are incomplete but should be enough
                 # to test that weewx will generate at least some graphs
+                #
+                # consult the Davis doc for units, which in general are US units
                 #-----------------------------------------------------------------------------
 
                 for s in data['data']['conditions']:
 
+                    # keep these in the order defined in the Davis doc for readability
                     if s['data_structure_type'] == 1 :
                         outTemp = s['temp']
                         outHumidity = s['hum']
+                        dewpoint = s['dew_point']
+                        heatindex = s['heat_index']
+                        windchill = s['wind_chill']
                         windSpeed = s['wind_speed_last']
                         windDir = s['wind_dir_last']
+                        # rainRate
                     elif s['data_structure_type'] == 2 :
                         # temp_1 to 4
                         # moist_soil_1 to 4
@@ -185,18 +198,24 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
                     elif s['data_structure_type'] == 4 :
                         inTemp = s['temp_in']
                         inHumidity = s['hum_in']
+                        inDewpoint = s['dew_point_in']
 
                 # got the data ok so reset the flag counter
                 ntries = 0
 
+                # keep these in the order defined above for readability
                 _packet = {'dateTime': int(time.time() + 0.5),
                            'usUnits': weewx.US,
                            'outTemp': outTemp,
-                           'inTemp':  inTemp,
-                           'inHumidity':  inHumidity,
                            'outHumidity': outHumidity,
+                           'dewpoint': dewpoint,
+                           'heatindex': heatindex,
+                           'windchill': windchill,
                            'windSpeed' : windSpeed,
                            'windDir' : windDir,
+                           'inTemp':  inTemp,
+                           'inHumidity':  inHumidity,
+                           'inDewpoint' : dewpoint,
                            }
                 yield _packet
                 if self.poll_interval:
@@ -212,13 +231,16 @@ class vincetestDriver(weewx.drivers.AbstractDevice):
             raise weewx.RetriesExceeded(msg)
 
 
-class Sensor():
-    def __init__(self, model):
-        self.model = model
-        self.timeout = timeout
-
+#==============================================================================
+# Main program
+#
 # To test this driver, do the following:
-#   PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/vincetest.py
+#   PYTHONPATH=/home/weewx/bin python3 /home/weewx/bin/user/WeatherLinkLiveJSON.py
+#
+# This is not tested under python2 but is believed to work.
+# This is not tested under weewx3 but is believed to work.
+#==============================================================================
+
 if __name__ == "__main__":
     usage = """%prog [options] [--help]"""
 
@@ -227,10 +249,10 @@ if __name__ == "__main__":
             import logging
             import weeutil.logger
             log = logging.getLogger(__name__)
-            weeutil.logger.setup('vincetest', {} )
+            weeutil.logger.setup('WeatherLinkLiveJSON', {} )
         except ImportError:
             import syslog
-            syslog.openlog('vincetest', syslog.LOG_PID | syslog.LOG_CONS)
+            syslog.openlog('WeatherLinkLiveJSON', syslog.LOG_PID | syslog.LOG_CONS)
 
         import optparse
         parser = optparse.OptionParser(usage=usage)
@@ -243,7 +265,7 @@ if __name__ == "__main__":
 
     def test_driver():
         import weeutil.weeutil
-        driver = vincetestDriver()
+        driver = WeatherLinkLiveJSONDriver()
         print("testing driver")
         for pkt in driver.genLoopPackets():
             print((weeutil.weeutil.timestamp_to_string(pkt['dateTime']), pkt))

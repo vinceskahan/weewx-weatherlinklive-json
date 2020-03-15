@@ -1,4 +1,0 @@
-
-test1.py = quick script to query your Davis WeatherLink Live current conditions
-conditions.json = test file with valid JSON returned by /v1/current_conditions typically
-vincetest.py = weewx driver - see comments in the file for details
