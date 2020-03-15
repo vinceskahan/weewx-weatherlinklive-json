@@ -16,6 +16,6 @@ class WeatherLinkLiveJSONInstaller(ExtensionInstaller):
             name='WeatherLinkLiveJSON',
             description='Collect data from WeatherLinkLive by periodic queries of current_conditions',
             author="Vince Skahan",
-            author_email="vince.skahan@gmaail.com",
-            files=[('bin/user', ['WeatherLinkLiveJSON.py'])]
+            author_email="vince.skahan@gmail.com",
+            files=[('bin/user', ['bin/user/WeatherLinkLiveJSON.py'])]
         )
