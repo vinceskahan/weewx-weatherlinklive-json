@@ -22,4 +22,5 @@ See the instructions in the driver itself please
 This driver is derived (with thanks) from the nice work of:
 * Matthew Wall
 * Bob Atchley
+* Pat O'Brien
 * and of course Tom Keffer
