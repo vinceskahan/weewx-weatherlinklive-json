@@ -18,13 +18,12 @@ class WeatherLinkLiveJSONInstaller(ExtensionInstaller):
             author="Vince Skahan",
             author_email="vince.skahan@gmail.com",
             config={
-                'StdReport': {
-                    'WeatherLinkLiveJSON': {
-                        'max_tries':'10',
-                        'retry_wait': '5',
-                        'poll_interval': 60,
-                        'url': 'http://your_weatherlink_live_ip_here:80/v1/current_conditions'
-                    }
+                'WeatherLinkLiveJSON': {
+                    'driver': 'user.WeatherLinkLiveJSON',
+                    'max_tries':'10',
+                    'retry_wait': '5',
+                    'poll_interval': 60,
+                    'url': 'http://your_weatherlink_live_ip_here:80/v1/current_conditions'
                 }
             },
             files=[('bin/user', ['bin/user/WeatherLinkLiveJSON.py'])]
