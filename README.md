@@ -1,3 +1,6 @@
+# DEPRECATED - DO NOT USE
+There are lots of better options now for WLL.  Consult the weewx-users Google group for options.
+
 
 ## WeatherFlowLiveJSON driver for weewx
 This driver feeds weewx with data via periodic queries of current conditions via http
